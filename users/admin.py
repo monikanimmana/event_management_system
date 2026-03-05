@@ -7,6 +7,6 @@ class CustomUserAdmins(UserAdmin):
     model = User
     list_display=("id","username","email","phone_number","is_staff","is_active")
     search_fields = ("username","email","phone_number")
-    ordering=("id")
+    ordering=("id",)
 
 admin.site.register(User,CustomUserAdmins)
