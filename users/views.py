@@ -1,32 +1,48 @@
 from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework import status
+from rest_framework.decorators import api_view
 from .models import User
-from django.http import JsonResponse
+from rest_framework.response import Response
+from .serializers import *
 import json
+from django.contrib.auth import authenticate
 
 # Create your views here.
-@csrf_exempt
+@api_view(["POST"])
 def register_user(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
+        serializer = UserRegisterSerializer(data = request.data)
 
-        first_name = data.get('first_name')
-        last_name = data.get('last_name')
-        username = data.get('username')
-        phone_number = data.get('phone_number')
-        email = data.get('email')
-        password = data.get('password')
+        if serializer.is_valid():
+            serializer.save()
 
-        user = User.objects.create_user(
-            first_name = first_name,
-            last_name = last_name,
-            username = username,
-            phone_number = phone_number,
-            email = email,
-            password=password
-        )
+            return Response(
+                  {"message" : "User account was successfully created"},
+                  status=status.HTTP_201_CREATED
+                
+                )
+    
+        return Response(serializer.errors , status = status.HTTP_400_BAD_REQUEST )
 
-        return JsonResponse({
-            "message" : "User account was successfully created",
-            "user_id" : user.id
-        })
+@api_view(["POST"])
+def login_user(request):
+      
+        serializer = UserLoginSerializer(data = request.data)
+
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            password = serializer.validated_data['password']
+
+            user = authenticate(request, email = email , password = password)
+
+            if user is not None:
+                  return Response(
+                        {"message":"Login successful"},
+                        status = status.HTTP_200_OK
+                  )
+            
+            return Response(
+                  {"error":"Invalid ceredials"},
+                  status = status.HTTP_401_UNAUTHORIZED
+            )
+        
+        return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
