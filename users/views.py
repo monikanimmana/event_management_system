@@ -1,11 +1,12 @@
 from django.shortcuts import render
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view , permission_classes
 from .models import User
 from rest_framework.response import Response
 from .serializers import *
 import json
 from django.contrib.auth import authenticate
+from rest_framework.permissions import IsAuthenticated  
 
 # Create your views here.
 @api_view(["POST"])
@@ -29,10 +30,10 @@ def login_user(request):
         serializer = UserLoginSerializer(data = request.data)
 
         if serializer.is_valid():
-            email = serializer.validated_data['email']
+            username = serializer.validated_data['username']
             password = serializer.validated_data['password']
 
-            user = authenticate(request, email = email , password = password)
+            user = authenticate(request, username = username , password = password)
 
             if user is not None:
                   return Response(
@@ -46,3 +47,25 @@ def login_user(request):
             )
         
         return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes(["IsAuthenticated"])
+def user_profile(request):
+
+      user = request.user
+      serializer = UserProfileSerializer(user)
+
+      return Response(serializer.data)
+
+@api_view(["POST"])
+def logout_user(request):
+
+      serializer = UserLogoutSerializer(data = request.data)
+
+      if serializer.is_valid():
+            serializer.save()
+
+            return Response({"message": "Logout successful"},status = status.HTTP_205_RESET_CONTENT)
+      
+      return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
