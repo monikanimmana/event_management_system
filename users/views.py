@@ -14,18 +14,36 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
 
 # Create your views here.
+def generator_uid_token(user):
+
+      uid = urlsafe_base64_encode(force_bytes(user.id))
+      token = PasswordResetTokenGenerator().make_token(user)
+
+      return uid , token
+
+
 @api_view(["POST"])
 def register_user(request):
         serializer = UserRegisterSerializer(data = request.data)
 
         if serializer.is_valid():
-            serializer.save()
+            user = serializer.save()
+            user.is_active = False
+            user.save()
+
+            uid , token = generator_uid_token(user)
+
+            domain = request.get_host()
+
+            verify_link = f"http://{domain}/users/email_verify/{uid}/{token}/"
 
             return Response(
-                  {"message" : "User account was successfully created"},
-                  status=status.HTTP_201_CREATED
-                
-                )
+                  {
+                        "message" : "Account created successfully but Email verify is required and sent the link",
+                        "verify_link" : verify_link
+                  }, 
+                        status=status.HTTP_201_CREATED
+                  )
     
         return Response(serializer.errors , status = status.HTTP_400_BAD_REQUEST )
 
@@ -88,10 +106,10 @@ def forgot_password(request):
             email = serializer.validated_data['email']
             user = User.objects.get(email=email)
 
-            uid = urlsafe_base64_encode(force_bytes(user.id))
-            token = PasswordResetTokenGenerator().make_token(uid)
+            uid , token = generator_uid_token(user)
+            domain = request.get_host()
 
-            reset_link = f"http://127.0.0.1:8000/users/reset-password/{uid}/{token}/"
+            reset_link = f"http://{domain}/users/reset-password/{uid}/{token}/"
 
             return Response({'messegae':'Password reset link was generated','reset_link' : reset_link})
       
@@ -118,6 +136,27 @@ def reset_password(request, uidb64 , token):
       user.save()
 
       return Response({"messege":"Password Reset Successfully"})
+
+@api_view(["GET"])
+def email_verify(request , uidb64 , token):
+
+      try :
+            uid = urlsafe_base64_decode(uidb64)
+            user = User.objects.get(id = uid)
+
+      except:
+            return Response({"messege":"invalid user Id"})
+      
+      if not generator_uid_token(user)[1] == token:
+            return Response({"messege":"token expired"})
+      
+      user.is_active = True
+      user.save()
+
+      return Response({"messege":"Email verify successful , You can login now"},
+                      status=status.HTTP_200_OK
+                      )
+
       
 
 

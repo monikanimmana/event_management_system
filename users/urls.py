@@ -11,5 +11,6 @@ urlpatterns = [
     path('logout/' , logout_user , name = "logout_user"),
     path('forgot/', forgot_password, name = "forgot_password"),
     path('resetpassword/<uidb64>/<token>/', reset_password , name = "reset_password"),
+    path('email_verify', email_verify , name = "email_verify"),
 
 ]
