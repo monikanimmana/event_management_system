@@ -5,8 +5,13 @@ from .models import User
 from rest_framework.response import Response
 from .serializers import *
 import json
-from django.contrib.auth import authenticate
-from rest_framework.permissions import IsAuthenticated  
+from django.contrib.auth import authenticate , get_user_model
+from rest_framework.permissions import IsAuthenticated 
+from django.utils.http import urlsafe_base64_encode , urlsafe_base64_decode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+
+
 
 # Create your views here.
 @api_view(["POST"])
@@ -69,3 +74,56 @@ def logout_user(request):
             return Response({"message": "Logout successful"},status = status.HTTP_205_RESET_CONTENT)
       
       return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+
+
+User = get_user_model()
+
+@api_view(["POST"])
+def forgot_password(request):
+
+      serializer = UserForgotPasswordSerializer(data = request.data)
+
+      if serializer.is_valid():
+
+            email = serializer.validated_data['email']
+            user = User.objects.get(email=email)
+
+            uid = urlsafe_base64_encode(force_bytes(user.id))
+            token = PasswordResetTokenGenerator().make_token(uid)
+
+            reset_link = f"http://127.0.0.1:8000/users/reset-password/{uid}/{token}/"
+
+            return Response({'messegae':'Password reset link was generated','reset_link' : reset_link})
+      
+      return Response(serializer.errors)
+
+@api_view(["POST"])
+def reset_password(request, uidb64 , token):
+
+      serializer = UserResetPasswordSerializer(data = request.data)
+
+      try:
+
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(id = uid)
+
+      except:
+            return Response({"messege": "invalid user"})
+      
+      if not PasswordResetTokenGenerator().check_token(token):
+            return Response({"messege":"token has expired"})
+      
+      new_password = request.data.get('password')
+      user.set_password(new_password)
+      user.save()
+
+      return Response({"messege":"Password Reset Successfully"})
+      
+
+
+
+
+      
+
+      
+
