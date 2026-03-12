@@ -58,15 +58,21 @@ def login_user(request):
 
             user = authenticate(request, username = username , password = password)
 
-            if user is not None:
+            if user is None:
                   return Response(
-                        {"message":"Login successful"},
-                        status = status.HTTP_200_OK
-                  )
-            
-            return Response(
                   {"error":"Invalid ceredials"},
                   status = status.HTTP_401_UNAUTHORIZED
+            )
+
+            if not user.is_active:
+                  return Response(
+                  {"error":"Email not verify"},
+                  status = status.HTTP_403_FORBIDDEN
+            )
+
+            return Response(
+                  {"message":"Login successful"},
+                  status = status.HTTP_200_OK
             )
         
         return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
