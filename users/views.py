@@ -79,7 +79,7 @@ def login_user(request):
 
 
 @api_view(["GET"])
-@permission_classes(["IsAuthenticated"])
+@permission_classes([IsAuthenticated])
 def user_profile(request):
 
       user = request.user
@@ -162,6 +162,55 @@ def email_verify(request , uidb64 , token):
       return Response({"messege":"Email verify successful , You can login now"},
                       status=status.HTTP_200_OK
                       )
+
+
+@api_view(["PUT"])
+@permission_classes([IsAuthenticated])
+def update_user_profile(request):
+
+      user = request.user
+      serializer = UpdateUserProfileSerializer(user , data = request.data , partial = True)
+
+      if serializer.is_valid():
+            serializer.save()
+
+            return Response(
+                  {"message":"Profile was updated successfully",
+                   "data" : serializer.data
+                  },
+                  status=status.HTTP_200_OK
+            )
+      
+      return Response(serializer.errors , status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+
+      serializer = UserChangePasswordSerializer(data = request.data)
+
+      if serializer.is_valid():
+            user = request.user
+
+            if not user.check_password(serializer.data.get('old_password')):
+                  return Response(
+                        {"message":"Old Password was incorrect"},
+                        status = status.HTTP_400_BAD_REQUEST
+                  )
+
+            user.set_password(serializer.data.get('new_password'))
+            user.save()
+
+            return Response(
+                  {"messages":"password was updated successfully"},
+                  status=status.HTTP_200_OK
+            )
+      
+      return Response(serializer.errors , status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
 
       
 
