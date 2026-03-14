@@ -95,7 +95,7 @@ class UserChangePasswordSerializer(serializers.ModelSerializer):
         if self.new_password != self.confirm_password:
             raise serializers.ValidationError({"confirm_password":"Password do not match"})
         
-        return data
+        
 
 
     
